@@ -3,6 +3,7 @@ const mailGun = require("nodemailer-mailgun-transport");
 
 const auth = {
   auth: {
+    host: "https://contact-us-api12.herokuapp.com/",
     api_key:
       process.env.API_KEY ||
       "6e54a5f8f82a255743bd3b9dc777a1bf-1f1bd6a9-9a028083",
