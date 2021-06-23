@@ -1,68 +1,50 @@
-const express = require("express");
-const cors = require("cors");
-const nodemailer = require("nodemailer");
-const multiparty = require("multiparty");
 require("dotenv").config();
-
-const PORT = process.env.PORT || 5000;
-
-// instantiate an express app
+const express = require("express");
+const path = require("path");
+const sendMail = require("./mail");
 const app = express();
-// cors
-app.use(cors({ origin: "*" }));
 
-app.use("/public", express.static(process.cwd() + "/public")); //make public static
+const port = process.env.PORT || 3000;
 
-const transporter = nodemailer.createTransport({
-  service: "hotmail",
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.PASS,
-  },
-});
+// Data parsing
+app.use(
+  express.urlencoded({
+    extended: false,
+  })
+);
+app.use(express.json());
 
-// verify connection configuration
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log(error);
-  } else {
-    console.log("Server is ready to take our messages");
-  }
-});
+// email, subject, text
+app.post("/email", (req, res) => {
+  const { name, email, text } = req.body;
+  console.log("Data: ", req.body);
 
-app.post("/send", (req, res) => {
-  let form = new multiparty.Form();
-  let data = {};
-  form.parse(req, function (err, fields) {
-    console.log(fields);
-    Object.keys(fields).forEach(function (property) {
-      data[property] = fields[property].toString();
-    });
-    console.log(data);
-    const mail = {
-      sender: `${data.name} <${data.email}>`,
-      to: process.env.EMAIL, // receiver email,
-      subject: data.subject,
-      text: `${data.name} <${data.email}> \n${data.message}`,
-    };
-    transporter.sendMail(mail, (err, data) => {
-      if (err) {
-        console.log(err);
-        res.status(500).send("Something went wrong.");
-      } else {
-        res.status(200).send("Email successfully sent to recipient!");
-      }
-    });
+  sendMail(email, name, text, function (err, data) {
+    if (err) {
+      console.log("ERROR: ", err);
+      return res.status(500).json({ message: err.message || "Internal Error" });
+    }
+    console.log("Email sent!!!");
+    return res.json({ message: "Email sent!!!!!" });
   });
 });
 
-//Index page (static HTML)
-app.route("/").get(function (req, res) {
-  res.sendFile(process.cwd() + "/public/index.html");
+// Render home page
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/index.html"));
 });
 
-/*************************************************/
-// Express server listening...
-app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}...`);
+// Error page
+app.get("/error", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/error.html"));
+});
+
+// Email sent page
+app.get("/email/sent", (req, res) => {
+  res.sendFile(path.join(__dirname, "./views/emailMessage.html"));
+});
+
+// Start server
+app.listen(port, (req, res) => {
+  console.log(`Server is running on port ${port}`);
 });
